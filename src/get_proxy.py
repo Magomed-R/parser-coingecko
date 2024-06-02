@@ -4,13 +4,14 @@ import os
 import aiohttp
 from colorama import Fore, Style
 
-class Proxy():
+
+class Proxy:
     def __init__(self, proxy_file_path: str):
         with open("./cache.json", "r") as cache:
             self.current_proxy = json.load(cache)["fresh_proxy"]
             self.proxy_file_path = proxy_file_path
-    
-    async def next_proxy(self, as_dict = False):
+
+    async def next_proxy(self, as_dict=False):
         with open(self.proxy_file_path, "r") as f:
             proxies = f.read().split("\n")
 
@@ -18,14 +19,16 @@ class Proxy():
 
         with open("./cache.json", "r") as f:
             cache = json.load(f)
-        
+
         with open("./cache.json", "w") as f:
             cache["fresh_proxy"] = self.current_proxy
             json.dump(cache, f)
-        
+
         return await self.get_proxy(as_dict)
 
-    async def get_proxy(self, as_dict = False):
+    async def get_proxy(self, as_dict=False):
+        print("getting proxy... ", end="")
+
         with open(self.proxy_file_path, "r") as f:
             proxies = f.read().strip().split("\n")
 
@@ -35,9 +38,11 @@ class Proxy():
             "user": proxy[2],
             "password": proxy[3],
             "ip": proxy[0],
-            "port": proxy[1]
+            "port": proxy[1],
         }
-        
+
+        print(Fore.GREEN + "proxy received!" + Style.RESET_ALL)
+
         if as_dict:
             return proxy_json
         else:
@@ -50,11 +55,12 @@ async def main():
     print(await proxy.get_proxy(as_dict=True))
     print(await proxy.next_proxy())
 
+
 if __name__ == "__main__":
     asyncio.run(main())
 
 
-#^ Legacy. Here using webshare.io API.
+# ^ Legacy. Here using webshare.io API.
 """ 
 auth_token = os.getenv("webshare_token")
 

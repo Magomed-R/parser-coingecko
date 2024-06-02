@@ -1,16 +1,19 @@
 import configparser
 import time
 import aiohttp
+from aiohttp.web_exceptions import HTTPUseProxy, HTTPMovedPermanently
+from aiohttp.client_exceptions import ClientProxyConnectionError, ClientHttpProxyError
 import arrow
 from bs4 import BeautifulSoup
 from colorama import Fore, Style
 import asyncio
+from get_proxy import Proxy
 
 import psycopg2
 import psycopg2.extras
 
 
-def call_404(coin_id, url, parsing_date, cause="Not Found"):
+def generate_null_coin(coin_id, url, parsing_date, cause="Not Found"):
     return {
         "name": coin_id,
         "number": 99999,
@@ -49,12 +52,21 @@ def call_404(coin_id, url, parsing_date, cause="Not Found"):
     }
 
 
-async def get_coin(coin_id: str, headers, parse, miss_markets=False):
+async def get_coin(coin_id: str, headers, parse, miss_markets=False, proxy=None):
     coin_id = coin_id.strip().replace(" ", "-")
     url = "https://www.coingecko.com/en/coins/{0}".format(coin_id)
 
+    print(
+        "Parsing {0} page... ".format(
+            coin_id
+        ),
+        end="",
+    )
+
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as response:
+        async with session.get(
+            url, headers=headers, proxy=proxy, timeout=15
+        ) as response:
             content = await response.text()
 
         parsing_date = arrow.utcnow().to("Europe/Moscow").format("YYYY-MM-DD-HH-mm-ss")
@@ -65,7 +77,7 @@ async def get_coin(coin_id: str, headers, parse, miss_markets=False):
         if html.find(class_="gecko-font-desktop"):
             print(Fore.RED + "\nRATE LIMITED! 120 seconds sleep!\n" + Style.RESET_ALL)
             time.sleep(120)
-            return await get_coin(coin_id, headers, parse, miss_markets)
+            return await get_coin(coin_id, headers, parse, miss_markets, proxy)
 
         try:
             if (
@@ -76,10 +88,10 @@ async def get_coin(coin_id: str, headers, parse, miss_markets=False):
                 .strip()
                 == "Preview Only"
             ):
-                return call_404(coin_id, url, parsing_date, "Preview Only!")
+                return generate_null_coin(coin_id, url, parsing_date, "Preview Only!")
         except:
             print(Fore.RED + "\nNot Found! " + url + "\n" + Style.RESET_ALL)
-            return call_404(coin_id, url, parsing_date, "Not Found")
+            return generate_null_coin(coin_id, url, parsing_date, "Not Found")
 
         try:
             coin["name"] = (
@@ -92,7 +104,7 @@ async def get_coin(coin_id: str, headers, parse, miss_markets=False):
             )
         except:
             print(Fore.RED + "\nNot Found! " + url + "\n" + Style.RESET_ALL)
-            return call_404(coin_id, url, parsing_date, "Not Found")
+            return generate_null_coin(coin_id, url, parsing_date, "Not Found")
 
         coin["ticker"] = (
             html.find(
@@ -488,7 +500,7 @@ async def get_coin(coin_id: str, headers, parse, miss_markets=False):
         coin["url"] = url
 
         markets_url = f"https://www.coingecko.com/en/coins/{coin_id}/markets/spot"
-        markets_req = await session.get(markets_url, headers=headers)
+        markets_req = await session.get(markets_url, headers=headers, proxy=proxy)
         markets_html = BeautifulSoup(await markets_req.text(), "html.parser")
 
         markets = {"DEX": {}, "CEX": {}}
@@ -507,10 +519,10 @@ async def get_coin(coin_id: str, headers, parse, miss_markets=False):
                 market_count = int(market_count.get_text().strip().split(" ")[5])
                 page_count = market_count // 100
 
-                print(f"\nMarkets count: {market_count}. Parsing pages...")
+                print(f"Markets count: {market_count}. Parsing markets...")
                 for i in range(1, page_count + 2):
                     page_url = f"https://www.coingecko.com/en/coins/{coin_id}/markets/spot?items=100&page={i}"
-                    page_req = await session.get(page_url, headers=headers)
+                    page_req = await session.get(page_url, headers=headers, proxy=proxy)
                     page_html = BeautifulSoup(await page_req.text(), "html.parser")
 
                     market_rows = page_html.find_all(
@@ -548,11 +560,16 @@ async def get_coin(coin_id: str, headers, parse, miss_markets=False):
 
         return coin
 
-def get_coin_from_db(coin_id: str, config_url: str, timestamp: int = 0, partial: bool = False):
+
+def get_coin_from_db(
+    coin_id: str, config_url: str, timestamp: int = 0, partial: bool = False
+):
     config = configparser.ConfigParser()
     config.read(config_url)
 
-    db_table = config["DB"]["db_table"] if not partial else config["DB"]["db_partial_table"]
+    db_table = (
+        config["DB"]["db_table"] if not partial else config["DB"]["db_partial_table"]
+    )
 
     conn = psycopg2.connect(
         database=config["DB"]["database"],
@@ -563,7 +580,9 @@ def get_coin_from_db(coin_id: str, config_url: str, timestamp: int = 0, partial:
     )
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    cursor.execute(f"SELECT * FROM {db_table} WHERE url = 'https://www.coingecko.com/en/coins/{coin_id}' and TO_TIMESTAMP(parsing_date, 'YYYY-MM-DD-HH24-MI-SS') <= NOW() - INTERVAL '{timestamp} hour' ORDER BY parsing_date DESC LIMIT 1;")
+    cursor.execute(
+        f"SELECT * FROM {db_table} WHERE url = 'https://www.coingecko.com/en/coins/{coin_id}' and TO_TIMESTAMP(parsing_date, 'YYYY-MM-DD-HH24-MI-SS') <= NOW() - INTERVAL '{timestamp} hour' ORDER BY parsing_date DESC LIMIT 1;"
+    )
     coin = dict(cursor.fetchone())
 
     cursor.close()
@@ -571,13 +590,20 @@ def get_coin_from_db(coin_id: str, config_url: str, timestamp: int = 0, partial:
 
     return coin
 
+
 async def main():
     config = configparser.ConfigParser()
     config.read("module-1.ini")
 
-    coin = await get_coin("polygon", config["headers"], config["sources"])
+    coin = await get_coin(
+        "polygon",
+        config["headers"],
+        config["sources"],
+        use_proxy=config["default"]["use_proxy"] == "on",
+    )
 
     print(coin["price"])
+
 
 if __name__ == "__main__":
     asyncio.run(main())

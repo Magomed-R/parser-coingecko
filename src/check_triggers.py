@@ -45,7 +45,7 @@ async def check_triggers(bot: Bot, config_url):
     for coin_url in coins_urls_list:
         coin_id = coin_url.split("/")[-1]
 
-        formulas = get_formulas(coin_id=coin_id, config_url=config_url)
+        formulas = get_formulas(coin_id=coin_id, config_file_path=config_url)
 
         worth_reacting = False
 

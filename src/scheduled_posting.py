@@ -42,7 +42,7 @@ async def scheduled_posting(bot: Bot, config_url: str):
     for coin_url in coins_urls_list:
         coin_id = coin_url.split("/")[-1]
 
-        formulas = get_formulas(coin_id=coin_id, config_url=config_url)
+        formulas = get_formulas(coin_id=coin_id, config_file_path=config_url)
         diagram_val = parse_diagram(config["message"]["diagram"], formulas)
 
         create_diagram(diagram_val, config["default"]["out_table"])

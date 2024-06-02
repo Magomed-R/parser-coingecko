@@ -23,8 +23,8 @@ def get_formulas(coin_id: str, config_file_path: str) -> dict:
             if formula_key.startswith("*"):
                 result = "{:,}".format(int(result))
                 formula_key = formula_key[1:]
-            
 
+        result = result.rstrip("0.")
         formulas[formula_key] = result
 
     return formulas

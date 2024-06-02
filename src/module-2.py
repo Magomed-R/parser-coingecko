@@ -1,32 +1,22 @@
 import asyncio
 import configparser
 import json
-import sys
-import arrow
 
-from colorama import Fore, Style
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from typing import Any, Awaitable, Callable, Dict
 
-from aiogram import Bot, Dispatcher, html
+from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message, Update, BotCommand, ErrorEvent
+from aiogram.types import Message, Update, BotCommand
 from aiogram.types import FSInputFile
-from aiogram.exceptions import AiogramError, TelegramAPIError
 
 from check_db import check_db
 from check_triggers import check_triggers
-from create_diagram import create_diagram
 from export_excel import export_24h
-from get_coin import get_coin
-from get_formulas import get_formulas
 from parse_coins import parse_coins
-from parse_macroses import parse_macroses
-from save_coin import save_coin
 from scheduled_posting import scheduled_posting
-from send_post import send_post
 
 dp = Dispatcher()
 

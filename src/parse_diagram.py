@@ -23,8 +23,15 @@ def parse_diagram(diagram: str, formulas: Dict) -> int:
             is_formula = False
 
             diagram = (
-                diagram[0:c] + str(formulas[curr_formula]) + diagram[formula_end + 1 :]
+                (
+                    diagram[0:c]
+                    + str(formulas[curr_formula])
+                    + diagram[formula_end + 1 :]
+                )
+                if str(formulas[curr_formula]) != ""
+                else "0"
             )
+
             curr_formula = ""
 
         if is_formula:
