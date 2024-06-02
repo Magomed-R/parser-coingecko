@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="600px"
+   height="330px"
+   viewBox="-70 -38 140 20"
+   version="1.1"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg">
+  <g style="stroke:#000;stroke-width:2">
+    <path
+       style="fill:#0f0;Stroke-linejoin: round;"
+       d="m -60,0 a 60,60 0 0 1 27,-50 l 10,17 A 40,40 0 0 0 -40,0 Z"/>
+    <path
+       style="fill:#ff0;Stroke-linejoin: round;"
+       d="m -30,-52 a 60,60 0 0 1 60,0 l -9.7,17.4 a 40,40 0 0 0 -40,0 z"/>
+    <path
+       style="fill:#f00;Stroke-linejoin: round;"
+       d="M 60,0 A 60,60 0 0 0 33,-50 L 23,-33 A 40,40 0 0 1 40,0 Z"/>
+    <path
+       id="arrow"
+       style="fill:#77d;fill-rule:evenodd;stroke-miterlimit:1000;Stroke-linejoin: round;"
+       transform="rotate(-50.4)"
+       d="M -3 -4 l 3 -25 l 3 25 A 5 5 0 11 -3-4 z M 0 -2 A 2 2 0 01 2 0 A 2 2 0 01 0 2 A 2 2 0 01 -2 0 A 2 2 0 01 0 -2 z"/>
+  </g>
+</svg>

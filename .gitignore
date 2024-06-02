@@ -1,0 +1,6 @@
+/.venv
+/src/__pycache__
+.env
+module-1.ini
+module-2.ini
+/ТЗ

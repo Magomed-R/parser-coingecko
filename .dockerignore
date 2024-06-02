@@ -1,0 +1,6 @@
+.venv
+.idea
+/src/__pycache__
+/__pycache__
+out_full_table_24h.xlsx
+out_table_24h.xlsx

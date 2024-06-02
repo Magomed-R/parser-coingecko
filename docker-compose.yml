@@ -1,0 +1,38 @@
+services:
+  fullparser:
+    # container_name: fullparser
+    image: fullparser
+    volumes:
+      - ./:/code
+    networks:
+      - general
+  module1:
+    # container_name: module1
+    image: module1
+    volumes:
+      - ./:/code
+    networks:
+      - general
+  module2:
+    # container_name: module2
+    image: module2
+    volumes:
+      - ./:/code
+    networks:
+      - general
+  postgresql:
+    container_name: postgresql
+    image: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - general
+    env_file:
+      - postgres.env
+volumes:
+  db-data:
+    external: true
+networks:
+  general: {}
