@@ -10,7 +10,7 @@ class Proxy():
             self.current_proxy = json.load(cache)["fresh_proxy"]
             self.proxy_file_path = proxy_file_path
     
-    def next_proxy(self):
+    async def next_proxy(self, as_dict = False):
         with open(self.proxy_file_path, "r") as f:
             proxies = f.read().split("\n")
 
@@ -23,7 +23,7 @@ class Proxy():
             cache["fresh_proxy"] = self.current_proxy
             json.dump(cache, f)
         
-        return proxies[self.current_proxy]
+        return await self.get_proxy(as_dict)
 
     async def get_proxy(self, as_dict = False):
         with open(self.proxy_file_path, "r") as f:
@@ -48,6 +48,7 @@ async def main():
     proxy = Proxy(proxy_file_path="proxy.txt")
     print(await proxy.get_proxy())
     print(await proxy.get_proxy(as_dict=True))
+    print(await proxy.next_proxy())
 
 if __name__ == "__main__":
     asyncio.run(main())
