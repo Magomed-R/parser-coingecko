@@ -45,7 +45,10 @@ async def scheduled_posting(bot: Bot, config_url: str):
         formulas = get_formulas(coin_id=coin_id, config_file_path=config_url)
         diagram_val = parse_diagram(config["message"]["diagram"], formulas)
 
-        create_diagram(diagram_val, config["default"]["out_table"])
+        if not diagram_val:
+            diagram_val = 0
+
+        create_diagram(diagram_val, config["default"]["schedule_diagram"])
 
         message_text = parse_text(text, formulas)
 

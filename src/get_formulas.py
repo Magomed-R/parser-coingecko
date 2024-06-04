@@ -12,22 +12,27 @@ def get_formulas(coin_id: str, config_file_path: str) -> dict:
         formula = parse_macroses(formula, coin_id, config_file_path)
         result = eval(formula)
 
+        if result == "":
+            result = 0
+
+
         if isinstance(result, float):
-            result = f"{result:.16f}"
-            result = result.rstrip("0.")
+            if "e" in str(result):
+                result = f"{result:.16f}"
 
-            if formula_key.startswith("*"):
-                result = "{:,}".format(float(result))
-                formula_key = formula_key[1:]
-        else:
-            if formula_key.startswith("*"):
-                result = "{:,}".format(int(result))
-                formula_key = formula_key[1:]
+        if formula_key.startswith("*"):
+            result = "{:,}".format(int(result))
+            formula_key = formula_key[1:]
 
-        result = result.rstrip("0.")
+        result = str(result).rstrip("0.")
+
+        if result == "":
+            result = 0
+
         formulas[formula_key] = result
 
     return formulas
+
 
 if __name__ == "__main__":
     print(get_formulas("tron", "module-1.ini"))

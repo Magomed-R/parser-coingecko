@@ -177,7 +177,6 @@ async def get_coin(coin_id: str, headers, parse, miss_markets=False, proxy=None)
                 .get_text()
                 .strip()
                 .split("$")[1]
-                .replace(",", "")
             )
         except:
             coin["price"] = 0
@@ -595,14 +594,12 @@ async def main():
     config = configparser.ConfigParser()
     config.read("module-1.ini")
 
-    coin = await get_coin(
-        "polygon",
-        config["headers"],
-        config["sources"],
-        use_proxy=config["default"]["use_proxy"] == "on",
+    coin = get_coin_from_db(
+        "cosmos-hub",
+        config_url="module-2.ini"
     )
 
-    print(coin["price"])
+    print(coin)
 
 
 if __name__ == "__main__":

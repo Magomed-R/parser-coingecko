@@ -56,7 +56,7 @@ async def check_triggers(bot: Bot, config_url):
         if worth_reacting:
             diagram_val = parse_diagram(config["message"]["diagram"], formulas)
 
-            create_diagram(diagram_val, config["default"]["out_table"])
+            create_diagram(diagram_val, config["default"]["trigger_diagram"])
 
             message_text = parse_text(text, formulas)
 

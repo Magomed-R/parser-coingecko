@@ -1,10 +1,29 @@
-#ПОСТИНГ_ПО_РАСПИСАНИЮ
+#СИГНАЛЫ
 
-#{ticker}
-
-✔ Цена → ${coin_price} ({price_1h_percate}%)
-✔ Капитал → ${market_cap}
-✔ Объём → ${volume}
-----------------
-Дата парсинга: {parsing_date}
-МОДУЛЬ 2
+Монета ➜ {coin}
+Тикер ➜ {ticker}
+Цена сейчас ➜ {price}
+Изменения 1ч ➜ {changes1h}
+Изменения 24ч ➜ {changes24h}
+Изменения 7дн ➜ {changes7d}
+Объём торгов 24ч ➜ {24h_volume}
+Капитализация ➜ {market_cap}
+Портфолио ➜ {add_to_portfolio}
+Сети ➜ {chains}
+Максимальная цена ➜ {all_time_high}
+Дата (макс.цена) ➜ {date_all_time_high}
+Минимальная цена ➜ {all_time_low}
+Дата (миним.цена) ➜ {date_all_time_low}
+DEX ➜ {dex}
+CEX ➜ {cex}
+ТГ канал (подписчики) ➜ {telegram_chanel_subscriber}
+ТГ чат (участники) ➜ {telegram_group_subscriber}
+ТГ чат ( онлайн) ➜ {telegram_group_online}
+Дискорд (подписчики) ➜ {discord_subscriber}
+Дискорд (онлайн) ➜ {discord_online}
+Гитхаб (подписчики) ➜ {github_followers}
+Гитхаб (проекты) ➜ {github_projects}
+Гитхаб (люди) ➜ {github_people}
+Гитхаб (реп.) ➜ {github_repositories}
+Гитхаб (реп.дата) ➜ {github_repositories_last_date}
+Дата парсинга ➜ {parsing_date}

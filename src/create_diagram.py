@@ -2,11 +2,10 @@ import cairosvg
 
 
 def get_svg(deg):
-    return f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg
+    return f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg
+   viewBox="-140 -70 280 40"
    width="600px"
    height="330px"
-   viewBox="-140 -70 280 40"
    version="1.1"
    id="svg1"
    xml:space="preserve"
@@ -75,4 +74,4 @@ def create_diagram(val, out_url):
 
 
 if __name__ == "__main__":
-    create_diagram(33, "assets/diagram.png")
+    create_diagram(50, "assets/diagram.png")
