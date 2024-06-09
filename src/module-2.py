@@ -140,8 +140,8 @@ async def main(bot):
             cache[config_url]["schelude_parsing"] = "off"
             json.dump(cache, f)
 
-        # await parse_coins(config_url)
-        # await check_triggers(bot, config_url)
+        await parse_coins(config_url)
+        await check_triggers(bot, config_url)
         await scheduled_posting(bot, config_url)
 
         scheduler.add_job(parse_coins, "interval", seconds=3600, args=[config_url])
