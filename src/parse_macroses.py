@@ -1,4 +1,6 @@
 from typing import Any
+
+import arrow
 from get_coin import get_coin_from_db
 
 
@@ -31,8 +33,10 @@ def replace_macroses(var: str, coin):
     var = var.replace("github_followers", coin["github_followers"])
     var = var.replace("github_projects", coin["github_projects"])
     var = var.replace("github_people", coin["github_people"])
+
+    github_rld = f"'{arrow.get(coin['github_repositories_last_date']).format('YYYY-MM-DD-HH-mm-ss')}'" if coin['github_repositories_last_date'] != '' else "'-'"
     var = var.replace(
-        "github_repositories_last_date", f"'{coin['github_repositories_last_date']}'"
+        "github_repositories_last_date", github_rld
     )
     var = var.replace("github_repositories", coin["github_repositories"])
     var = var.replace("parsing_date", f"'{coin['parsing_date']}'")

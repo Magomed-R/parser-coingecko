@@ -7,6 +7,7 @@ import arrow
 from bs4 import BeautifulSoup
 from colorama import Fore, Style
 import asyncio
+from check_db import check_db
 from get_proxy import Proxy
 
 import psycopg2
@@ -177,6 +178,7 @@ async def get_coin(coin_id: str, headers, parse, miss_markets=False, proxy=None)
                 .get_text()
                 .strip()
                 .split("$")[1]
+                .replace(",", "")
             )
         except:
             coin["price"] = 0
@@ -250,202 +252,222 @@ async def get_coin(coin_id: str, headers, parse, miss_markets=False, proxy=None)
         coin["categories"] = ""
         coin["chains"] = ""
         for row in secondaty_rows:
+            # try:
             try:
                 row = row.findChildren("div", recursive=False)[0].findChildren(
                     "div", recursive=False
                 )
-                row_title = row[0].get_text().strip()
-                row_content = row[1]
+            except IndexError:
+                continue
 
-                if row_title == "Community":
-                    social_networks = row_content.find(
-                        "div",
-                        class_="tw-flex tw-items-center tw-gap-1 tw-flex-wrap tw-justify-end",
-                    ).find_all("a")
-                    for net in social_networks:
-                        net_title = net.get_text().strip()
-                        net_href = net.get("href")
+            row_title = row[0].get_text().strip()
+            row_content = row[1]
 
-                        if net_title == "Twitter":
-                            if parse["twitter_pars"] == "on":
-                                pass
-                                # coin["twitter_subs"] =
-                                # coin["twitter_posts"] =
-                        if net_title == "Telegram":
-                            if parse["telegram_pars"] == "on":
-                                telegram_page = await session.get(
-                                    net_href, headers=headers
-                                )
-                                soup = BeautifulSoup(
-                                    await telegram_page.text(), "html.parser"
-                                )
+            if row_title == "Community":
+                social_networks = row_content.find(
+                    "div",
+                    class_="tw-flex tw-items-center tw-gap-1 tw-flex-wrap tw-justify-end",
+                ).find_all("a")
+                for net in social_networks:
+                    net_title = net.get_text().strip()
+                    net_href = net.get("href")
+
+                    if net_title == "Twitter":
+                        if parse["twitter_pars"] == "on":
+                            pass
+                            # coin["twitter_subs"] =
+                            # coin["twitter_posts"] =
+                    if net_title == "Telegram":
+                        if parse["telegram_pars"] == "on":
+                            telegram_page = await session.get(
+                                net_href, headers=headers
+                            )
+                            soup = BeautifulSoup(
+                                await telegram_page.text(), "html.parser"
+                            )
+                            try:
                                 text = (
                                     soup.find(class_="tgme_page_extra")
                                     .get_text()
                                     .strip()
                                 )
 
-                                subs = int(text.split("member")[0].replace(" ", ""))
-                                coin["telegram_channel_subs"] = subs
-                                coin["telegram_group_subs"] = subs
+                                if "subscribers" in text:
+                                    subs = int(text.split("subscribers")[0].replace(" ", ""))
+                                    coin["telegram_channel_subs"] = subs
+                                    coin["telegram_group_subs"] = subs
+                                    coin["telegram_group_online"] = 0
+                                elif "member" in text:
+                                    subs = int(text.split("member")[0].replace(" ", ""))
+                                    coin["telegram_channel_subs"] = subs
+                                    coin["telegram_group_subs"] = subs
 
-                                splited = text.split(",")
+                                    splited = text.split(",")
 
-                                if len(splited) == 2:
-                                    coin["telegram_group_online"] = int(
-                                        splited[1].split("online")[0].replace(" ", "")
-                                    )
-                        if net_title == "Discord":
-                            if parse["discord_pars"] == "on":
-                                discord_soc = net_href.split("/")[-1]
-                                discord_req = await session.get(
-                                    f"https://discord.com/api/v9/invites/{discord_soc}?with_counts=true&with_expiration=true"
-                                )
-                                discord_req = await discord_req.json()
+                                    if len(splited) == 2:
+                                        coin["telegram_group_online"] = int(
+                                            splited[1].split("online")[0].replace(" ", "")
+                                        )
+                            except AttributeError:
+                                coin["telegram_channel_subs"] = 0
+                                coin["telegram_group_subs"] = 0
+                                coin["telegram_group_online"] = 0
+
+                    if net_title == "Discord":
+                        if parse["discord_pars"] == "on":
+                            discord_soc = net_href.split("/")[-1]
+                            discord_req = await session.get(
+                                f"https://discord.com/api/v9/invites/{discord_soc}?with_counts=true&with_expiration=true"
+                            )
+                            discord_req = await discord_req.json()
+
+                            if "approximate_member_count" in discord_req:
                                 coin["discord_subs"] = discord_req[
                                     "approximate_member_count"
                                 ]
                                 coin["discord_online"] = discord_req[
                                     "approximate_presence_count"
                                 ]
-                        if net_title == "Facebook":
-                            if parse["facebook_pars"] == "on":
-                                pass
-                                # coin["facebook_subs"] =
-                                # coin["facebook_like"] =
+                    if net_title == "Facebook":
+                        if parse["facebook_pars"] == "on":
+                            pass
+                            # coin["facebook_subs"] =
+                            # coin["facebook_like"] =
 
-                if row_title == "Source Code":
-                    coin_github = row_content.find("a").get("href").split("/")[-1]
-                    if parse["github_pars"] == "on":
-                        github_headers = dict(
-                            {
-                                "Accept": "application/vnd.github+json",
-                                "X-GitHub-Api-Version": "2022-11-28",
-                                "Authorization": "Bearer {0}".format(
-                                    parse["github_token"]
-                                ),
-                            }
-                        )
-                        github_people = await session.get(
-                            f"https://api.github.com/orgs/{coin_github}/members",
-                            headers=github_headers,
-                        )
-                        github_org = await session.get(
-                            f"https://api.github.com/orgs/{coin_github}",
-                            headers=github_headers,
-                        )
-                        github_proj = await session.get(
-                            f"https://api.github.com/orgs/{coin_github}/repos",
-                            headers=github_headers,
-                        )
-                        github_people = await github_people.json()
-                        github_org = await github_org.json()
-                        github_proj = await github_proj.json()
+            if row_title == "Source Code":
+                coin_github = row_content.find("a").get("href").split("/")[-1]
+                if parse["github_pars"] == "on":
+                    github_headers = dict(
+                        {
+                            "Accept": "application/vnd.github+json",
+                            "X-GitHub-Api-Version": "2022-11-28",
+                            "Authorization": "Bearer {0}".format(
+                                parse["github_token"]
+                            ),
+                        }
+                    )
+                    github_people = await session.get(
+                        f"https://api.github.com/orgs/{coin_github}/members",
+                        headers=github_headers,
+                    )
+                    github_org = await session.get(
+                        f"https://api.github.com/orgs/{coin_github}",
+                        headers=github_headers,
+                    )
+                    github_proj = await session.get(
+                        f"https://api.github.com/orgs/{coin_github}/repos",
+                        headers=github_headers,
+                    )
+                    github_people = await github_people.json()
+                    github_org = await github_org.json()
+                    github_proj = await github_proj.json()
 
+                    if "followers" in github_org:
                         coin["github_followers"] = github_org["followers"]
                         coin["github_projects"] = len(github_proj)
                         coin["github_people"] = len(github_people)
                         coin["github_repositories"] = github_org["public_repos"]
                         coin["github_repositories_last_date"] = github_org["updated_at"]
 
-                if row_title == "Chains":
-                    first_chain = (
-                        row_content.find(
-                            "div",
-                            class_="tw-max-w-[200px] tw-overflow-hidden tw-overflow-ellipsis",
-                        )
-                        .get_text()
-                        .strip()
+            if row_title == "Chains":
+                first_chain = (
+                    row_content.find(
+                        "div",
+                        class_="tw-max-w-[200px] tw-overflow-hidden tw-overflow-ellipsis",
                     )
-                    more_chains = list(
-                        map(
-                            lambda x: x.get_text().strip(),
-                            row_content.find_all(
-                                "a",
-                                class_="dark:tw-text-moon-100 dark:hover:tw-bg-moon-700 dark:hover:tw-text-moon-50 hover:tw-bg-gray-100 hover:tw-text-gray-900 tw-flex tw-items-center tw-py-3 tw-px-2 tw-rounded-lg tw-font-semibold tw-text-gray-700 tw-text-sm",
-                            ),
-                        )
+                    .get_text()
+                    .strip()
+                )
+                more_chains = list(
+                    map(
+                        lambda x: x.get_text().strip(),
+                        row_content.find_all(
+                            "a",
+                            class_="dark:tw-text-moon-100 dark:hover:tw-bg-moon-700 dark:hover:tw-text-moon-50 hover:tw-bg-gray-100 hover:tw-text-gray-900 tw-flex tw-items-center tw-py-3 tw-px-2 tw-rounded-lg tw-font-semibold tw-text-gray-700 tw-text-sm",
+                        ),
                     )
-
-                    coin["chains"] = ", ".join([first_chain, *more_chains])
-
-                coin["twitter_subs"] = (
-                    0 if "twitter_subs" not in coin else coin["twitter_subs"]
-                )
-                coin["twitter_posts"] = (
-                    0 if "twitter_posts" not in coin else coin["twitter_posts"]
-                )
-                coin["telegram_channel_subs"] = (
-                    0
-                    if "telegram_channel_subs" not in coin
-                    else coin["telegram_channel_subs"]
-                )
-                coin["telegram_group_subs"] = (
-                    0
-                    if "telegram_group_subs" not in coin
-                    else coin["telegram_group_subs"]
-                )
-                coin["telegram_group_online"] = (
-                    0
-                    if "telegram_group_online" not in coin
-                    else coin["telegram_group_online"]
-                )
-                coin["discord_subs"] = (
-                    0 if "discord_subs" not in coin else coin["discord_subs"]
-                )
-                coin["discord_online"] = (
-                    0 if "discord_online" not in coin else coin["discord_online"]
-                )
-                coin["facebook_subs"] = (
-                    0 if "facebook_subs" not in coin else coin["facebook_subs"]
-                )
-                coin["facebook_like"] = (
-                    0 if "facebook_like" not in coin else coin["facebook_like"]
-                )
-                coin["github_followers"] = (
-                    0 if "github_followers" not in coin else coin["github_followers"]
-                )
-                coin["github_projects"] = (
-                    0 if "github_projects" not in coin else coin["github_projects"]
-                )
-                coin["github_people"] = (
-                    0 if "github_people" not in coin else coin["github_people"]
-                )
-                coin["github_repositories"] = (
-                    0
-                    if "github_repositories" not in coin
-                    else coin["github_repositories"]
-                )
-                coin["github_repositories_last_date"] = (
-                    ""
-                    if "github_repositories_last_date" not in coin
-                    else coin["github_repositories_last_date"]
                 )
 
-                if row_title == "Categories":
-                    first_category = (
-                        row_content.find(
-                            "div",
-                            class_="tw-max-w-[200px] tw-overflow-hidden tw-overflow-ellipsis",
-                        )
-                        .get_text()
-                        .strip()
-                    )
-                    more_categories = list(
-                        map(
-                            lambda x: x.get_text().strip(),
-                            row_content.find_all(
-                                "a",
-                                class_="dark:tw-text-moon-100 dark:hover:tw-bg-moon-700 dark:hover:tw-text-moon-50 hover:tw-bg-gray-100 hover:tw-text-gray-900 tw-flex tw-items-center tw-py-3 tw-px-2 tw-rounded-lg tw-font-semibold tw-text-gray-700 tw-text-sm",
-                            ),
-                        )
-                    )
+                coin["chains"] = ", ".join([first_chain, *more_chains])
 
-                    coin["categories"] = ", ".join([first_category, *more_categories])
-                    break
-            except Exception as e:
-                print(Fore.YELLOW + "has no categories. " + Style.RESET_ALL, end="")
-                continue
+            coin["twitter_subs"] = (
+                0 if "twitter_subs" not in coin else coin["twitter_subs"]
+            )
+            coin["twitter_posts"] = (
+                0 if "twitter_posts" not in coin else coin["twitter_posts"]
+            )
+            coin["telegram_channel_subs"] = (
+                0
+                if "telegram_channel_subs" not in coin
+                else coin["telegram_channel_subs"]
+            )
+            coin["telegram_group_subs"] = (
+                0
+                if "telegram_group_subs" not in coin
+                else coin["telegram_group_subs"]
+            )
+            coin["telegram_group_online"] = (
+                0
+                if "telegram_group_online" not in coin
+                else coin["telegram_group_online"]
+            )
+            coin["discord_subs"] = (
+                0 if "discord_subs" not in coin else coin["discord_subs"]
+            )
+            coin["discord_online"] = (
+                0 if "discord_online" not in coin else coin["discord_online"]
+            )
+            coin["facebook_subs"] = (
+                0 if "facebook_subs" not in coin else coin["facebook_subs"]
+            )
+            coin["facebook_like"] = (
+                0 if "facebook_like" not in coin else coin["facebook_like"]
+            )
+            coin["github_followers"] = (
+                0 if "github_followers" not in coin else coin["github_followers"]
+            )
+            coin["github_projects"] = (
+                0 if "github_projects" not in coin else coin["github_projects"]
+            )
+            coin["github_people"] = (
+                0 if "github_people" not in coin else coin["github_people"]
+            )
+            coin["github_repositories"] = (
+                0
+                if "github_repositories" not in coin
+                else coin["github_repositories"]
+            )
+            coin["github_repositories_last_date"] = (
+                ""
+                if "github_repositories_last_date" not in coin
+                else coin["github_repositories_last_date"]
+            )
+
+            if row_title == "Categories":
+                first_category = (
+                    row_content.find(
+                        "div",
+                        class_="tw-max-w-[200px] tw-overflow-hidden tw-overflow-ellipsis",
+                    )
+                    .get_text()
+                    .strip()
+                )
+                more_categories = list(
+                    map(
+                        lambda x: x.get_text().strip(),
+                        row_content.find_all(
+                            "a",
+                            class_="dark:tw-text-moon-100 dark:hover:tw-bg-moon-700 dark:hover:tw-text-moon-50 hover:tw-bg-gray-100 hover:tw-text-gray-900 tw-flex tw-items-center tw-py-3 tw-px-2 tw-rounded-lg tw-font-semibold tw-text-gray-700 tw-text-sm",
+                        ),
+                    )
+                )
+
+                coin["categories"] = ", ".join([first_category, *more_categories])
+                break
+            # except Exception as e:
+            #     print(e)
+            #     print(Fore.YELLOW + "has no categories. " + Style.RESET_ALL, end="")
+            #     continue
 
         try:
             tertiary_rows = (
@@ -569,6 +591,8 @@ def get_coin_from_db(
     db_table = (
         config["DB"]["db_table"] if not partial else config["DB"]["db_partial_table"]
     )
+
+    check_db(config["DB"])
 
     conn = psycopg2.connect(
         database=config["DB"]["database"],

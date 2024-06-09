@@ -1,3 +1,4 @@
+import asyncio
 from configparser import ConfigParser
 
 from get_coin import get_coin
@@ -7,7 +8,6 @@ from colorama import Fore, Style
 
 from aiohttp.web_exceptions import HTTPMovedPermanently
 from aiohttp.client_exceptions import ClientProxyConnectionError, ClientHttpProxyError
-from aiohttp import ServerTimeoutError
 
 
 async def parse_coins(config_url):
@@ -18,7 +18,7 @@ async def parse_coins(config_url):
         coins_urls_list = f.read().split("\n")
 
     with open(config["default"]["coingecko_off"], "r") as f:
-        miss_markets = f.read().split("\n")
+        miss_coins = f.read().split("\n")
 
     proxy_class = Proxy("proxy.txt")
     proxy = (
@@ -32,16 +32,21 @@ async def parse_coins(config_url):
 
         errors = 0
 
+        if ("https://www.coingecko.com/en/coins/" + coin_id) in miss_coins:
+            print(Fore.RED + f"Miss coin {coin_id}" + Style.RESET_ALL)
+
+            continue
+
         while True:
+            if coin_id in miss_coins:
+                continue
+
             try:
                 coin = await get_coin(
                     coin_id=coin_id,
                     headers=config["headers"],
                     parse=config["sources"],
-                    miss_markets=(
-                        (coin_url in miss_markets)
-                        or (config["default"]["markets"] == "off")
-                    ),
+                    miss_markets=config["default"]["markets"] != "on",
                     proxy=proxy,
                 )
 
@@ -62,7 +67,7 @@ async def parse_coins(config_url):
                     Fore.YELLOW + "Proxy outdated. Use next proxy..." + Style.RESET_ALL
                 )
 
-            except ServerTimeoutError:
+            except asyncio.TimeoutError:
                 errors += 1
                 proxy = (
                     await proxy_class.next_proxy()

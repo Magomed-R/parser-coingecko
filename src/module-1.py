@@ -108,16 +108,6 @@ async def stat(message: Message):
 async def get_archive(message: Message):
     config.read(config_url)
 
-    check_db(config["DB"], True)
-
-    export_24h_partial(config_url)
-    return await message.answer_document(FSInputFile(config["default"]["out_table"]))
-
-
-@dp.message(Command("get_full_archive"))
-async def get_full_archive(message: Message):
-    config.read(config_url)
-
     check_db(config["DB"])
 
     export_24h(config_url)
@@ -154,7 +144,7 @@ async def main(bot):
             cache[config_url]["schelude_parsing"] = "off"
             json.dump(cache, f)
 
-        await parse_coins(config_url)
+        # await parse_coins(config_url)
         await check_triggers(bot, config_url)
         await scheduled_posting(bot, config_url)
 

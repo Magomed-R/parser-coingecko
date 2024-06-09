@@ -18,13 +18,27 @@ def get_formulas(coin_id: str, config_file_path: str) -> dict:
 
         if isinstance(result, float):
             if "e" in str(result):
-                result = f"{result:.16f}"
+                result = f"{result:.16f}"  
 
-        if formula_key.startswith("*"):
-            result = "{:,}".format(int(result))
-            formula_key = formula_key[1:]
+                if formula_key.startswith("*"):
+                    formula_key = formula_key[1:]
+            else:
+                if formula_key.startswith("*"):
+                    result = "{:,}".format(float(result))
+                    formula_key = formula_key[1:]
+        elif isinstance(result, int):
+            if formula_key.startswith("*"):
+                result = "{:,}".format(int(result))
+                formula_key = formula_key[1:]
 
-        result = str(result).rstrip("0.")
+        result = str(result)
+
+        while "." in result and (result.endswith("0") or result.endswith(".")):
+            if result[-1] == ".":
+                result = result[:-1]
+                break
+            elif result[-1] == "0":
+                result = result[:-1]
 
         if result == "":
             result = 0
@@ -35,4 +49,4 @@ def get_formulas(coin_id: str, config_file_path: str) -> dict:
 
 
 if __name__ == "__main__":
-    print(get_formulas("tron", "module-1.ini"))
+    print(get_formulas("tron", "module-1.ini")["price_1h"])

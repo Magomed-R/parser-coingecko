@@ -31,11 +31,13 @@ async def full_parsing(config_url: str):
             last_coin = 0
 
         with open(config["default"]["coingecko_off"], "r") as f:
-            miss_markets = f.read().split("\n")
+            miss_coins = f.read().split("\n")
+
+        coin_id = coins[last_coin]["id"]
 
         print(
             "{2}. Explore {0} ({1}) page... ".format(
-                coins[last_coin]["name"], coins[last_coin]["id"], last_coin
+                coins[last_coin]["name"], coin_id, last_coin
             ),
             end="",
         )
@@ -49,16 +51,19 @@ async def full_parsing(config_url: str):
 
         errors = 0
 
+        if ("https://www.coingecko.com/en/coins/" + coin_id) in miss_coins:
+            print(Fore.RED + f"Miss coin {coin_id}" + Style.RESET_ALL)
+            last_coin += 1
+
+            continue
+
         while True:
             try:
                 coin = await get_coin(
-                    coin_id=coins[last_coin]["id"],
+                    coin_id=coin_id,
                     headers=config["headers"],
                     parse=config["sources"],
-                    miss_markets=(
-                        (coins[last_coin]["id"] in miss_markets)
-                        or (config["default"]["markets"] == "off")
-                    ),
+                    miss_markets=config["default"]["markets"] != "on",
                     proxy=proxy,
                 )
 
@@ -79,7 +84,7 @@ async def full_parsing(config_url: str):
                     Fore.YELLOW + "Proxy outdated. Use next proxy..." + Style.RESET_ALL
                 )
 
-            except aiohttp.ServerTimeoutError:
+            except asyncio.TimeoutError:
                 errors += 1
                 proxy = (
                     await proxy_class.next_proxy()
