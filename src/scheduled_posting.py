@@ -53,4 +53,4 @@ async def scheduled_posting(bot: Bot, config_url: str):
         message_text = parse_text(text, formulas)
 
         for channel in json.loads(config["default"]["channels"]):
-            await send_post(bot, message_text, channel, config["default"]["out_table"])
+            await send_post(bot, message_text, channel, config["default"]["schedule_diagram"])
